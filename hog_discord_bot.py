@@ -21,7 +21,7 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0' 
+    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 
 ffmpeg_options = {
@@ -55,7 +55,19 @@ warns = {}
 @bot.event
 async def on_ready():
     print(f'logged in as {bot.user}')
-
+@bot.slash_command(name = 'ddos',description = 'Execute order 66')
+@commands.has_permissions(administrator = True)
+async def test(ctx,name, amount,starting_message):
+    try:
+        for i in range(int(amount)):
+            message = await ctx.send(starting_message)
+            await message.create_thread(name = name)
+    except ValueError:
+        await ctx.respond('One of inputs is incorrect type')
+    except Exception as e:
+        await ctx.respond('Something went wrong')
+        await ctx.respond(f'Debug info: {e.__class__.__name__} {e.args}')
+       
 @bot.slash_command(name = 'timeout', description ='timeout a user')
 @commands.has_permissions(moderate_members = True)
 async def timeout(ctx, member:Option(discord.Member, required = True), reason:Option(str,required = False), days:Option(int,max_value = 28 ,required = False),hours:Option(int,required = False), minutes:Option(int,required = False)):
@@ -284,4 +296,4 @@ async def server_info(ctx):
     embed.set_author(name = 'HoG Team',icon_url='https://sun9-69.userapi.com/impg/0XZSvANhOv2ZiiSgUZwf_9n1jpGuhFNSz1EScg/g-th_a-8prE.jpg?size=1000x1000&quality=95&sign=eaa1bee581f0bbabede3d96215fce2e4&type=album')   
     embed.set_thumbnail(url = 'https://sun9-69.userapi.com/impg/0XZSvANhOv2ZiiSgUZwf_9n1jpGuhFNSz1EScg/g-th_a-8prE.jpg?size=1000x1000&quality=95&sign=eaa1bee581f0bbabede3d96215fce2e4&type=album')
     
-    await ctx.respond('Welcome!', embed = embed)            
+    await ctx.respond('Welcome!', embed = embed)
