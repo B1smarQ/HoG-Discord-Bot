@@ -52,9 +52,34 @@ bot = discord.Bot()
 rand_number = randint(0,10)
 
 warns = {}
+
+user_message_count = {}
+
+user_message_levels = {}
+
+message_levels = [10,20,50,100,200,300,500,1000]
 @bot.event
 async def on_ready():
     print(f'logged in as {bot.user}')
+    
+@bot.event
+async def on_message(message):
+    global user_message_count,message_levels,user_message_levels
+    if str(message.author.id) in user_message_count:
+        user_message_count[str(message.author.id)] += 1
+        for message_level in message_levels:
+            if user_message_count[str(message.author.id)]>message_level:
+                print('yes')
+                user_message_levels[str(message.author.id)]+=1
+            else:
+                print(f'{user_message_count[str(message.author.id)]} < {message_level}')
+        else:
+            user_message_levels[str(message.author.id)] = 0
+    elif message.author.id != bot.user.id:
+        user_message_count[str(message.author.id)] = 1
+        user_message_levels[str(message.author.id)] = 0
+        
+    print(f'messages: {user_message_count}, levels:{user_message_levels}')
 @bot.slash_command(name = 'ddos',description = 'Execute order 66')
 @commands.has_permissions(administrator = True)
 async def test(ctx,name, amount,starting_message):
@@ -150,13 +175,8 @@ async def kick(ctx,member:Option(discord.Member, required = True),reason:Option(
             await ctx.respond("User {member.id} has been kicked by {ctx.author.id}")
         
 @bot.slash_command(name = 'guess_the_number',description = 'Guess the neumber game')
-async def gtn(ctx,number):
+async def gtn(ctx,number:Option(int,required = True)):
     global rand_number
-    try:
-        number = int(number)
-    except:
-        await ctx.respond('That is not a number!')
-        return
     if number == rand_number:
         await ctx.respond('Correct!')
         rand_number = randint(0,10)
@@ -297,3 +317,17 @@ async def server_info(ctx):
     embed.set_thumbnail(url = 'https://sun9-69.userapi.com/impg/0XZSvANhOv2ZiiSgUZwf_9n1jpGuhFNSz1EScg/g-th_a-8prE.jpg?size=1000x1000&quality=95&sign=eaa1bee581f0bbabede3d96215fce2e4&type=album')
     
     await ctx.respond('Welcome!', embed = embed)
+    
+@bot.slash_command(name = 'my_level')
+async def show_level(ctx):
+    if str(ctx.author.id) in user_message_count:
+        await ctx.respond(user_message_count[str(ctx.author.id)])
+        
+@bot.slash_command(name = 'add_messages')
+@commands.has_permissions(administrator = True)
+async def add_messages(ctx,amount:Option(int, required = True)):
+    global user_message_count
+    if str(ctx.author.id) in user_message_count:
+        user_message_count[str(ctx.author.id)]+=amount
+    else:
+        user_message_count[str(ctx.author.id)] = amount             
