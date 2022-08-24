@@ -8,9 +8,20 @@ from discord.ext import commands
 import string
 import youtube_dl
 import asyncio
+from dataclasses import dataclass
 youtube_dl.utils.bug_reports_message = lambda: ''
 
-
+@dataclass
+class User:
+    id:str
+    message_count:int
+    message_level:int
+    
+    def __str__(self) -> str:
+        return f'Your current level is {self.message_level}, you sent {self.message_count} messages'
+    
+    def __eq__(self,id:str):
+        return self.id == id
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'restrictfilenames': True,
@@ -29,7 +40,6 @@ ffmpeg_options = {
 }
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -53,9 +63,7 @@ rand_number = randint(0,10)
 
 warns = {}
 
-user_message_count = {}
-
-user_message_levels = {}
+users = []
 
 message_levels = [10,20,50,100,200,300,500,1000]
 @bot.event
@@ -64,22 +72,21 @@ async def on_ready():
     
 @bot.event
 async def on_message(message):
-    global user_message_count,message_levels,user_message_levels
-    if str(message.author.id) in user_message_count:
-        user_message_count[str(message.author.id)] += 1
-        for message_level in message_levels:
-            if user_message_count[str(message.author.id)]>message_level:
-                print('yes')
-                user_message_levels[str(message.author.id)]+=1
-            else:
-                print(f'{user_message_count[str(message.author.id)]} < {message_level}')
-        else:
-            user_message_levels[str(message.author.id)] = 0
-    elif message.author.id != bot.user.id:
-        user_message_count[str(message.author.id)] = 1
-        user_message_levels[str(message.author.id)] = 0
-        
-    print(f'messages: {user_message_count}, levels:{user_message_levels}')
+    global users,message_levels
+    if message.author.id == bot.user.id:
+        return
+    user = User(str(message.author.id),1,0)
+    if len(users)!=0:
+        for _user in users:
+            if _user.__eq__(user.id):
+                _user.message_count +=1
+                for ind,level in enumerate(message_levels):
+                    if _user.message_count > level and _user.message_level<ind:
+                        _user.message_count +=1
+    else:
+        users.append(user)
+        print('added user')
+                    
 @bot.slash_command(name = 'ddos',description = 'Execute order 66')
 @commands.has_permissions(administrator = True)
 async def test(ctx,name, amount,starting_message):
@@ -320,14 +327,17 @@ async def server_info(ctx):
     
 @bot.slash_command(name = 'my_level')
 async def show_level(ctx):
-    if str(ctx.author.id) in user_message_count:
-        await ctx.respond(user_message_count[str(ctx.author.id)])
+    for user in users:
+        if str(ctx.author.id) == user.id:
+            await ctx.respond(f'You are currently at level {user.message_level}, you sent {user.message_count} messages')
         
 @bot.slash_command(name = 'add_messages')
 @commands.has_permissions(administrator = True)
 async def add_messages(ctx,amount:Option(int, required = True)):
-    global user_message_count
-    if str(ctx.author.id) in user_message_count:
-        user_message_count[str(ctx.author.id)]+=amount
-    else:
-        user_message_count[str(ctx.author.id)] = amount             
+    for user in users:
+        if user.id == ctx.author.id:
+            user.message_count+=amount
+            await ctx.respond('Added {amount} messages')
+         
+        
+ 
